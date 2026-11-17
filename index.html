@@ -1,0 +1,559 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nova AI - Voice Tutor</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg:#0b1020;
+  --panel:#141c30;
+  --panel2:#1a2540;
+  --text:#f4f6ff;
+  --muted:#9ba8c7;
+  --accent:#8066ff;
+  --cyan:#35d9e8;
+  --border:#293653;
+}
+* {box-sizing:border-box;margin:0;padding:0}
+body {
+  background:var(--bg);
+  color:var(--text);
+  font-family:Inter,sans-serif;
+  min-height:100vh;
+}
+button,input,textarea {font:inherit}
+button {cursor:pointer}
+.app {display:flex;min-height:100vh}
+.sidebar {
+  width:245px;
+  background:#10182b;
+  border-right:1px solid var(--border);
+  padding:25px 16px;
+  position:fixed;
+  inset:0 auto 0 0;
+  z-index:5;
+}
+.logo {
+  font-size:24px;font-weight:800;
+  padding:5px 10px 35px;
+}
+.logo span {color:var(--cyan)}
+.nav-label {
+  color:var(--muted);font-size:11px;
+  padding:12px;
+}
+.nav button {
+  width:100%;padding:14px;
+  border:0;border-radius:12px;
+  color:var(--muted);background:transparent;
+  text-align:left;margin-bottom:7px;
+}
+.nav button:hover,.nav button.active {
+  background:#29244c;color:white;
+}
+.nav button.active {border-left:3px solid var(--accent)}
+.sidebar-bottom {
+  position:absolute;bottom:25px;left:16px;right:16px;
+  background:var(--panel);padding:15px;
+  border-radius:13px;font-size:12px;color:var(--muted);
+}
+.main {margin-left:245px;width:calc(100% - 245px)}
+.topbar {
+  height:75px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 35px;
+}
+.topbar h3 {font-size:17px}
+.status {color:#6de5b0;font-size:12px}
+.content {padding:35px;max-width:1150px;margin:auto}
+.page {display:none}
+.page.active {display:block}
+.hero {
+  background:linear-gradient(120deg,#29205c,#153d59);
+  border:1px solid #5549a0;
+  border-radius:22px;padding:38px;
+  margin-bottom:25px;
+}
+.hero h1 {font-size:clamp(28px,4vw,43px);line-height:1.2}
+.hero h1 span {color:#8fddff}
+.hero p {color:#d0d7f0;margin:15px 0 22px;line-height:1.7}
+.btn {
+  background:var(--accent);color:white;
+  border:0;border-radius:10px;padding:13px 20px;
+  font-weight:600;
+}
+.btn:hover {filter:brightness(1.13)}
+.btn.secondary {background:var(--panel2);border:1px solid var(--border)}
+.grid {
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:17px;margin-top:20px;
+}
+.card {
+  background:var(--panel);border:1px solid var(--border);
+  padding:22px;border-radius:17px;
+}
+.card .emoji {font-size:28px;margin-bottom:15px}
+.card h3 {margin-bottom:9px}
+.card p {color:var(--muted);font-size:13px;line-height:1.7}
+.section-title {font-size:23px;margin-bottom:12px}
+.muted {color:var(--muted)}
+.tutor-layout {
+  display:grid;grid-template-columns:1fr 1fr;gap:20px;
+}
+.voice-box {
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:20px;padding:25px;text-align:center;
+}
+.mic {
+  height:125px;width:125px;border-radius:50%;
+  background:linear-gradient(140deg,#6d4cff,#22c7e6);
+  border:7px solid #29264c;
+  color:white;font-size:42px;
+  margin:25px auto;display:grid;place-items:center;
+  box-shadow:0 0 35px #6854ff55;
+}
+.mic.listening {animation:pulse 1.2s infinite}
+@keyframes pulse {
+  50% {box-shadow:0 0 0 18px #8066ff20,0 0 45px #8066ff}
+}
+.transcript {
+  background:var(--panel2);border-radius:12px;
+  padding:15px;text-align:left;min-height:75px;
+  color:var(--muted);font-size:14px;
+  margin:18px 0;line-height:1.6;
+}
+.chat-box {
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:18px;padding:20px;
+}
+.messages {
+  height:370px;overflow-y:auto;
+  display:flex;flex-direction:column;gap:13px;
+  padding:10px 0 20px;
+}
+.msg {
+  padding:13px 15px;border-radius:13px;
+  max-width:90%;font-size:14px;line-height:1.7;
+  white-space:pre-wrap;overflow-wrap:anywhere;
+}
+.msg.user {background:#3c347a;align-self:flex-end}
+.msg.ai {background:var(--panel2);align-self:flex-start}
+.input-row {display:flex;gap:9px}
+.input-row textarea {
+  flex:1;resize:none;min-width:0;
+  background:var(--panel2);border:1px solid var(--border);
+  color:white;padding:14px;border-radius:12px;
+  outline:none;min-height:50px;
+}
+.input-row textarea:focus {border-color:var(--accent)}
+.small-btn {
+  border:1px solid var(--border);background:var(--panel2);
+  color:white;border-radius:10px;padding:10px 15px;
+}
+.controls {display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+select {
+  background:var(--panel2);color:white;
+  border:1px solid var(--border);padding:10px;
+  border-radius:9px;
+}
+.about-card {line-height:1.9;color:var(--muted)}
+.about-card h2 {color:white;margin:20px 0 10px}
+.mobile-menu {display:none}
+.footer {color:var(--muted);font-size:12px;text-align:center;margin-top:35px}
+.toast {color:#ffb6a6;font-size:13px;margin-top:12px}
+@media(max-width:850px) {
+  .sidebar {width:70px;padding:20px 8px}
+  .logo {font-size:17px;padding:8px 4px 30px}
+  .nav-label,.nav button span,.sidebar-bottom {display:none}
+  .nav button {text-align:center;padding:15px 5px;font-size:17px}
+  .main {margin-left:70px;width:calc(100% - 70px)}
+  .content {padding:20px}
+  .topbar {padding:0 20px}
+  .grid {grid-template-columns:1fr}
+  .tutor-layout {grid-template-columns:1fr}
+}
+@media(max-width:500px) {
+  .hero {padding:24px}
+  .input-row {flex-wrap:wrap}
+  .input-row textarea {flex-basis:100%}
+  .messages {height:320px}
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<aside class="sidebar">
+  <div class="logo">NOVA<span> AI.</span></div>
+
+  <div class="nav-label">MAIN MENU</div>
+  <nav class="nav">
+    <button class="active" data-page="home"><span>⌂</span> Home</button>
+    <button data-page="voice"><span>🎙</span> Voice Tutor</button>
+    <button data-page="chat"><span>▤</span> AI Chat</button>
+    <button data-page="about"><span>ⓘ</span> About</button>
+  </nav>
+
+  <div class="sidebar-bottom">
+    ✨ Powered by Groq AI<br><br>
+    Your personal AI learning assistant.
+  </div>
+</aside>
+
+<main class="main">
+<header class="topbar">
+  <h3 id="pageTitle">Dashboard</h3>
+  <div class="status">● AI System Ready</div>
+</header>
+
+<div class="content">
+
+<!-- HOME PAGE -->
+<section class="page active" id="home">
+  <div class="hero">
+    <h1>Learn Smarter with<br><span>Nova AI Tutor.</span></h1>
+    <p>Your personal AI teacher. Ask questions, speak naturally and learn something new every day.</p>
+    <button class="btn" onclick="showPage('voice')">🎙 Start Learning</button>
+    <button class="btn secondary" onclick="showPage('chat')">Open AI Chat</button>
+  </div>
+
+  <h2 class="section-title">Explore Features</h2>
+  <p class="muted">Everything you need to learn with AI.</p>
+
+  <div class="grid">
+    <div class="card">
+      <div class="emoji">🎙️</div>
+      <h3>Voice Recognition</h3>
+      <p>Speak your question. AI converts your speech into text.</p>
+    </div>
+    <div class="card">
+      <div class="emoji">🧠</div>
+      <h3>Smart Answers</h3>
+      <p>Get simple and understandable answers to your questions.</p>
+    </div>
+    <div class="card">
+      <div class="emoji">🔊</div>
+      <h3>Voice Response</h3>
+      <p>Listen to AI answers with your device's speech engine.</p>
+    </div>
+  </div>
+</section>
+
+<!-- VOICE PAGE -->
+<section class="page" id="voice">
+  <h2 class="section-title">AI Voice Tutor</h2>
+  <p class="muted">Press the microphone and ask your question.</p>
+  <br>
+
+  <div class="tutor-layout">
+    <div class="voice-box">
+      <h3>Voice Assistant</h3>
+      <div class="mic" id="micIcon">🎙</div>
+      <p id="voiceStatus" class="muted">Ready to listen</p>
+      <div class="transcript" id="transcript">Your spoken question will appear here...</div>
+
+      <div class="controls">
+        <button class="btn" id="startVoice">Start Listening</button>
+        <button class="btn secondary" id="stopVoice">Stop</button>
+      </div>
+      <br>
+      <div class="controls">
+        <select id="voiceLanguage">
+          <option value="hi-IN">Hindi</option>
+          <option value="en-IN">English</option>
+        </select>
+        <button class="small-btn" id="speakToggle">🔊 Voice ON</button>
+      </div>
+      <p class="toast" id="voiceError"></p>
+    </div>
+
+    <div class="chat-box">
+      <h3>AI Answer</h3>
+      <div class="messages" id="voiceMessages">
+        <div class="msg ai">Hello! I am Nova AI. Ask me anything.</div>
+      </div>
+      <button class="btn secondary" onclick="stopSpeaking()">Stop Speaking</button>
+    </div>
+  </div>
+</section>
+
+<!-- CHAT PAGE -->
+<section class="page" id="chat">
+  <h2 class="section-title">AI Chat Assistant</h2>
+  <p class="muted">Ask anything and get an intelligent answer.</p>
+  <br>
+
+  <div class="chat-box">
+    <div class="messages" id="chatMessages">
+      <div class="msg ai">Hello! Welcome to Nova AI. How can I help you?</div>
+    </div>
+    <div class="input-row">
+      <textarea id="chatInput" placeholder="Type your question here..."></textarea>
+      <button class="btn" id="sendBtn">Send ➤</button>
+    </div>
+    <br>
+    <button class="small-btn" onclick="clearChat()">Clear Chat</button>
+  </div>
+</section>
+
+<!-- ABOUT PAGE -->
+<section class="page" id="about">
+  <h2 class="section-title">About Nova AI</h2>
+  <div class="card about-card">
+    <h2>🚀 Your Personal AI Tutor</h2>
+    Nova AI is an AI-powered learning assistant designed to make learning easy, interactive and accessible.
+
+    <h2>Our Features</h2>
+    <p>🎙 Voice recognition</p>
+    <p>🧠 AI-powered question answering</p>
+    <p>🔊 Spoken answers</p>
+    <p>🌐 Hindi and English support</p>
+    <p>📱 Mobile-friendly interface</p>
+
+    <h2>Technology</h2>
+    <p>Frontend: HTML, CSS and JavaScript</p>
+    <p>AI Engine: Groq API</p>
+    <p>Model: OpenAI GPT-OSS-20B hosted on Groq</p>
+    <p>Speech: Browser Speech Recognition and Speech Synthesis</p>
+
+    <h2>Our Mission</h2>
+    <p>To make learning easier through the power of artificial intelligence.</p>
+  </div>
+</section>
+
+<div class="footer">© 2026 Nova AI Tutor · Made for smarter learning</div>
+</div>
+</main>
+</div>
+
+<script>
+// PAGE NAVIGATION
+const titles = {
+  home:"Dashboard",
+  voice:"Voice Tutor",
+  chat:"AI Chat",
+  about:"About Nova AI"
+};
+
+function showPage(name) {
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
+
+  document.getElementById(name).classList.add("active");
+  const button = document.querySelector(`[data-page="${name}"]`);
+  if(button) button.classList.add("active");
+
+  document.getElementById("pageTitle").textContent=titles[name];
+  location.hash=name;
+}
+
+document.querySelectorAll("[data-page]").forEach(btn=>{
+  btn.addEventListener("click",()=>showPage(btn.dataset.page));
+});
+
+const initialPage = location.hash.replace("#","");
+if(titles[initialPage]) showPage(initialPage);
+
+// CHAT
+const chatMessages=document.getElementById("chatMessages");
+const chatInput=document.getElementById("chatInput");
+const sendBtn=document.getElementById("sendBtn");
+
+let history=[];
+
+function addMessage(container,text,type) {
+  const div=document.createElement("div");
+  div.className="msg "+type;
+  div.textContent=text;
+  container.appendChild(div);
+  container.scrollTop=container.scrollHeight;
+  return div;
+}
+
+async function askAI(question,container) {
+  if(!question.trim()) return;
+
+  const loading=addMessage(container,"Thinking...","ai");
+  sendBtn.disabled=true;
+
+  try {
+    const response=await fetch("/api/chat",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        question,
+        history:history.slice(-10)
+      })
+    });
+
+    const data=await response.json();
+
+    if(!response.ok) throw new Error(data.error || "AI request failed");
+
+    loading.textContent=data.answer;
+    history.push(
+      {role:"user",content:question},
+      {role:"assistant",content:data.answer}
+    );
+    return data.answer;
+
+  } catch(error) {
+    loading.textContent="Error: "+error.message;
+    return null;
+  } finally {
+    sendBtn.disabled=false;
+  }
+}
+
+async function sendChat() {
+  const question=chatInput.value.trim();
+  if(!question) return;
+  addMessage(chatMessages,question,"user");
+  chatInput.value="";
+  await askAI(question,chatMessages);
+}
+
+sendBtn.addEventListener("click",sendChat);
+
+chatInput.addEventListener("keydown",e=>{
+  if(e.key==="Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendChat();
+  }
+});
+
+function clearChat() {
+  history=[];
+  chatMessages.innerHTML="";
+  addMessage(chatMessages,"Chat cleared. Ask me anything!","ai");
+}
+
+// VOICE RECOGNITION
+const SpeechRecognition =
+  window.SpeechRecognition || window.webkitSpeechRecognition;
+
+let recognition=null;
+let listening=false;
+let voiceEnabled=true;
+
+const startVoice=document.getElementById("startVoice");
+const stopVoice=document.getElementById("stopVoice");
+const micIcon=document.getElementById("micIcon");
+const voiceStatus=document.getElementById("voiceStatus");
+const transcript=document.getElementById("transcript");
+const voiceMessages=document.getElementById("voiceMessages");
+
+function stopSpeaking() {
+  window.speechSynthesis.cancel();
+}
+
+function speak(text) {
+  if(!voiceEnabled || !("speechSynthesis" in window)) return;
+
+  stopSpeaking();
+  const utterance=new SpeechSynthesisUtterance(text);
+  utterance.lang=document.getElementById("voiceLanguage").value;
+  utterance.rate=1;
+  window.speechSynthesis.speak(utterance);
+}
+
+document.getElementById("speakToggle").onclick=()=>{
+  voiceEnabled=!voiceEnabled;
+  document.getElementById("speakToggle").textContent=
+    voiceEnabled?"🔊 Voice ON":"🔇 Voice OFF";
+  if(!voiceEnabled) stopSpeaking();
+};
+
+async function processVoice(question) {
+  if(!question.trim()) return;
+
+  addMessage(voiceMessages,question,"user");
+  voiceStatus.textContent="AI is preparing your answer...";
+
+  const answer=await askAI(question,voiceMessages);
+
+  if(answer) {
+    speak(answer);
+    voiceStatus.textContent="Answer ready";
+  } else {
+    voiceStatus.textContent="Could not get an answer";
+  }
+}
+
+if(SpeechRecognition) {
+  recognition=new SpeechRecognition();
+  recognition.continuous=false;
+  recognition.interimResults=true;
+
+  recognition.onstart=()=>{
+    listening=true;
+    micIcon.classList.add("listening");
+    voiceStatus.textContent="Listening...";
+  };
+
+  recognition.onresult=event=>{
+    let finalText="";
+    let interimText="";
+
+    for(let i=event.resultIndex;i<event.results.length;i++) {
+      if(event.results[i].isFinal) {
+        finalText+=event.results[i][0].transcript;
+      } else {
+        interimText+=event.results[i][0].transcript;
+      }
+    }
+
+    transcript.textContent=finalText || interimText;
+
+    if(finalText.trim()) {
+      recognition.stop();
+      processVoice(finalText.trim());
+    }
+  };
+
+  recognition.onerror=event=>{
+    document.getElementById("voiceError").textContent=
+      "Voice error: "+event.error;
+  };
+
+  recognition.onend=()=>{
+    listening=false;
+    micIcon.classList.remove("listening");
+    if(voiceStatus.textContent==="Listening...")
+      voiceStatus.textContent="Ready to listen";
+  };
+
+  startVoice.onclick=()=>{
+    if(listening) return;
+    stopSpeaking();
+    document.getElementById("voiceError").textContent="";
+    transcript.textContent="Listening...";
+    recognition.lang=document.getElementById("voiceLanguage").value;
+    try {recognition.start();}
+    catch(e) {
+      document.getElementById("voiceError").textContent=
+        "Please wait and try again.";
+    }
+  };
+
+  stopVoice.onclick=()=>{
+    if(listening) recognition.stop();
+    stopSpeaking();
+    voiceStatus.textContent="Stopped";
+  };
+
+} else {
+  startVoice.disabled=true;
+  document.getElementById("voiceError").textContent=
+    "Speech recognition is not supported in this browser. Try a supported browser.";
+  stopVoice.onclick=stopSpeaking;
+}
+</script>
+</body>
+</html>
